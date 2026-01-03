@@ -1,179 +1,193 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Enquiry Log</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>Enquiry Log</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      padding: 10px;
-    }
-
-    h2 {
-      margin-bottom: 4px;
-    }
-
-    .header-ref {
-      font-size: 12px;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-
-    button {
-      background: #0b2c5d;
-      color: white;
-      border: none;
-      padding: 8px;
-      width: 100%;
-      margin: 5px 0;
-      cursor: pointer;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      font-size: 12px;
-    }
-
-    th, td {
-      border: 1px solid #ccc;
-      padding: 5px;
-      text-align: center;
-    }
-
-    th {
-      background: #e9eef5;
-    }
-
-    input, select {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 4px;
-    }
-  </style>
+<style>
+body { font-family: Arial; background:#f4f6f8; padding:10px }
+h2 { margin-bottom:4px }
+.header-ref { font-size:12px; font-weight:bold; margin-bottom:10px }
+button { background:#0b2c5d; color:#fff; border:none; padding:8px; width:100%; margin:5px 0; cursor:pointer }
+table { width:100%; border-collapse:collapse; background:#fff; font-size:12px }
+th,td { border:1px solid #ccc; padding:5px; text-align:center }
+th { background:#e9eef5 }
+input,select { width:100%; box-sizing:border-box; padding:4px }
+.locked { background:#eee }
+.reminder { color:red; font-weight:bold; cursor:pointer }
+.filters { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:5px }
+</style>
 </head>
+
 <body>
 
 <h2>Enquiry Log – January 2026</h2>
 <div class="header-ref">IRS-FORM-13-01</div>
 
+<div class="filters">
+  <input placeholder="Search Project" oninput="searchText=this.value;render()">
+  <select onchange="filterStatus=this.value;render()">
+    <option value="">All Status</option>
+    <option>Submitted</option>
+    <option>Working</option>
+    <option>Not Started</option>
+  </select>
+  <select onchange="filterManager=this.value;render()">
+    <option value="">All Managers</option>
+    <option>Mr. Vishal</option>
+    <option>Mr. Mukesh</option>
+    <option>Mr. Irshad</option>
+    <option>Mr. Prem</option>
+    <option>Ms. Tania</option>
+    <option>Mr. Robbin</option>
+  </select>
+</div>
+
 <button onclick="addRow()">➕ Add Enquiry</button>
 <button onclick="downloadExcel()">⬇️ Download Excel</button>
 
 <table>
-  <thead>
-    <tr>
-      <th>Sl.No</th>
-      <th>Quote Ref</th>
-      <th>Project Name</th>
-      <th>Project Manager</th>
-      <th>Candidate</th>
-      <th>Enquiry Received</th>
-      <th>Deadline</th>
-      <th>Status</th>
-      <th>Submitted Value</th>
-    </tr>
-  </thead>
-  <tbody id="tableBody"></tbody>
+<thead>
+<tr>
+<th>Sl</th>
+<th>Quote</th>
+<th>Project</th>
+<th>Manager</th>
+<th>Candidate</th>
+<th>Received</th>
+<th>Deadline</th>
+<th>Status</th>
+<th>Value</th>
+<th>Reminder</th>
+</tr>
+</thead>
+<tbody id="body"></tbody>
 </table>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
-/* ================= CONFIG ================= */
-const STORAGE_KEY = "ENQUIRY_LOG_JAN_2026";
+/* CONFIG */
+const STORAGE="ENQUIRY_JAN_2026";
+const QUOTE_START=8669;
+const candidates={
+  "Praneeth":"estimation@insides.ae",
+  "Chetaka":"estimation2@insides.ae"
+};
 
-/* ================= DATA ================= */
-let rows = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+let rows=JSON.parse(localStorage.getItem(STORAGE))||[];
+let filterStatus="",filterManager="",searchText="";
 
-/* ================= ADD ROW ================= */
-function addRow() {
+/* NEXT QUOTE */
+function nextQuote(){
+  if(!rows.length) return QUOTE_START;
+  return Math.max(...rows.map(r=>+r.Quote||QUOTE_START))+1;
+}
+
+/* ADD */
+function addRow(){
   rows.push({
-    "Sl.No": rows.length + 1,
-    "Quote Ref": "202601-" + (rows.length + 1),
-    "Project Name": "",
-    "Project Manager": "",
-    "Candidate": "",
-    "Enquiry Received": "",
-    "Deadline": "",
-    "Status": "Not Started",
-    "Submitted Value": ""
+    Sl:rows.length+1,
+    Quote:nextQuote(),
+    Project:"",
+    Manager:"",
+    Candidate:"",
+    Received:"",
+    Deadline:"",
+    Status:"Not Started",
+    Value:""
   });
   save();
 }
 
-/* ================= SAVE ================= */
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+/* SAVE */
+function save(){
+  localStorage.setItem(STORAGE,JSON.stringify(rows));
   render();
 }
 
-/* ================= RENDER ================= */
-function render() {
-  const body = document.getElementById("tableBody");
-  body.innerHTML = "";
-
-  rows.forEach((r, i) => {
-    body.innerHTML += `
+/* RENDER */
+function render(){
+  const b=document.getElementById("body");
+  b.innerHTML="";
+  rows
+  .filter(r=>!filterStatus||r.Status===filterStatus)
+  .filter(r=>!filterManager||r.Manager===filterManager)
+  .filter(r=>!searchText||r.Project.toLowerCase().includes(searchText.toLowerCase()))
+  .forEach((r,i)=>{
+    const locked=r.Status==="Submitted";
+    const overdue=r.Deadline && r.Status!=="Submitted" && r.Deadline<new Date().toISOString().split("T")[0];
+    b.innerHTML+=`
 <tr>
-<td>${i + 1}</td>
-<td><input value="${r["Quote Ref"]}" oninput="upd(${i},'Quote Ref',this.value)"></td>
-<td><input value="${r["Project Name"]}" oninput="upd(${i},'Project Name',this.value)"></td>
+<td>${i+1}</td>
+<td><input ${locked?"disabled class=locked":""} value="${r.Quote}" oninput="upd(${i},'Quote',this.value)"></td>
+<td><input ${locked?"disabled class=locked":""} value="${r.Project}" oninput="upd(${i},'Project',this.value)"></td>
 <td>
-  <select onchange="upd(${i},'Project Manager',this.value)">
-    <option></option>
-    <option ${r["Project Manager"]=="Mr. Vishal"?"selected":""}>Mr. Vishal</option>
-    <option ${r["Project Manager"]=="Mr. Mukesh"?"selected":""}>Mr. Mukesh</option>
-    <option ${r["Project Manager"]=="Mr. Irshad"?"selected":""}>Mr. Irshad</option>
-    <option ${r["Project Manager"]=="Mr. Prem"?"selected":""}>Mr. Prem</option>
-    <option ${r["Project Manager"]=="Ms. Tania"?"selected":""}>Ms. Tania</option>
-    <option ${r["Project Manager"]=="Mr. Robbin"?"selected":""}>Mr. Robbin</option>
-  </select>
+<select ${locked?"disabled":""} onchange="upd(${i},'Manager',this.value)">
+<option></option>${mgrOpt(r.Manager)}
+</select>
 </td>
 <td>
-  <select onchange="upd(${i},'Candidate',this.value)">
-    <option></option>
-    <option ${r["Candidate"]=="Praneeth"?"selected":""}>Praneeth</option>
-    <option ${r["Candidate"]=="Chetaka"?"selected":""}>Chetaka</option>
-  </select>
+<select ${locked?"disabled":""} onchange="upd(${i},'Candidate',this.value)">
+<option></option>${candOpt(r.Candidate)}
+</select>
 </td>
-<td><input type="date" value="${r["Enquiry Received"]}" onchange="upd(${i},'Enquiry Received',this.value)"></td>
-<td><input type="date" value="${r["Deadline"]}" onchange="upd(${i},'Deadline',this.value)"></td>
+<td><input ${locked?"disabled":""} type="date" value="${r.Received}" onchange="upd(${i},'Received',this.value)"></td>
+<td><input ${locked?"disabled":""} type="date" value="${r.Deadline}" onchange="upd(${i},'Deadline',this.value)"></td>
 <td>
-  <select onchange="upd(${i},'Status',this.value)">
-    <option ${r["Status"]=="Not Started"?"selected":""}>Not Started</option>
-    <option ${r["Status"]=="Working"?"selected":""}>Working</option>
-    <option ${r["Status"]=="Submitted"?"selected":""}>Submitted</option>
-  </select>
+<select onchange="upd(${i},'Status',this.value)">
+<option ${r.Status=="Not Started"?"selected":""}>Not Started</option>
+<option ${r.Status=="Working"?"selected":""}>Working</option>
+<option ${r.Status=="Submitted"?"selected":""}>Submitted</option>
+</select>
 </td>
-<td><input type="number" value="${r["Submitted Value"]}" oninput="upd(${i},'Submitted Value',this.value)"></td>
+<td><input ${locked?"disabled class=locked":""} type="number" value="${r.Value}" oninput="upd(${i},'Value',this.value)"></td>
+<td>${overdue?`<span class="reminder" onclick="sendMail(${i})">Send</span>`:""}</td>
 </tr>`;
   });
 }
 
-/* ================= UPDATE ================= */
-function upd(i, key, value) {
-  rows[i][key] = value;
-  save();
+/* UPDATE */
+function upd(i,k,v){ rows[i][k]=v; save(); }
+
+/* OPTIONS */
+function mgrOpt(v){
+return["Mr. Vishal","Mr. Mukesh","Mr. Irshad","Mr. Prem","Ms. Tania","Mr. Robbin"]
+.map(m=>`<option ${v==m?"selected":""}>${m}</option>`).join("");
+}
+function candOpt(v){
+return Object.keys(candidates)
+.map(c=>`<option ${v==c?"selected":""}>${c}</option>`).join("");
 }
 
-/* ================= EXCEL ================= */
-function downloadExcel() {
-  if (!rows.length) {
-    alert("No data");
-    return;
-  }
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "January 2026");
-  XLSX.writeFile(wb, "Enquiry_January_2026.xlsx");
+/* EMAIL REMINDER */
+function sendMail(i){
+  const r=rows[i];
+  const to=candidates[r.Candidate]||"";
+  const subject=`Pending Estimation – Quote ${r.Quote}`;
+  const body=`Hello ${r.Candidate},
+
+Reminder for pending estimation.
+
+Project: ${r.Project}
+Quote No: ${r.Quote}
+Deadline: ${r.Deadline}
+
+Please prioritize.
+
+Regards`;
+  window.location=`mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-/* ================= START ================= */
+/* EXCEL */
+function downloadExcel(){
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Jan 2026");
+  XLSX.writeFile(wb,"Enquiry_Jan_2026.xlsx");
+}
+
 render();
 </script>
 
