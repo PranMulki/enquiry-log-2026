@@ -1,29 +1,21 @@
-const PASSWORD = "Insides";   // 🔐 editable password
-const API_URL = "YOUR_WEB_APP_URL";  // Google Apps Script URL
+const API_URL = "https://script.google.com/macros/s/AKfycbz7Wu9D21kUuURthXcX89sfzMU4TvKmAgXwprEdJa_hHUM8mVk2nLEsXnmXn3WoIbF3/exec";
 const FORM_REF_KEY = "formRef";
 
 let currentMonth = new Date().toISOString().slice(0,7);
 let data = [];
 
-/* LOGIN */
-function login() {
-  if (document.getElementById("password").value === PASSWORD) {
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("app").classList.remove("hidden");
+/* AUTO START */
+window.onload = () => {
+  const savedRef = localStorage.getItem(FORM_REF_KEY);
+  if (savedRef) document.getElementById("formRef").value = savedRef;
 
-    const savedRef = localStorage.getItem(FORM_REF_KEY);
-    if (savedRef) document.getElementById("formRef").value = savedRef;
+  document.getElementById("formRef").oninput = e =>
+    localStorage.setItem(FORM_REF_KEY, e.target.value);
 
-    document.getElementById("formRef").oninput = e =>
-      localStorage.setItem(FORM_REF_KEY, e.target.value);
+  initMonth();
+};
 
-    initMonth();
-  } else {
-    alert("Wrong password");
-  }
-}
-
-/* MONTH SETUP */
+/* MONTH SELECT */
 function initMonth() {
   const sel = document.getElementById("monthSelect");
   sel.innerHTML = "";
@@ -96,3 +88,38 @@ function render() {
         r.Deadline < new Date().toISOString().split("T")[0]
           ? "Reminder Due"
           : "";
+
+      tbody.innerHTML += `
+<tr>
+<td>${r["Sl.No"]}</td>
+<td><input value="${r["Quote Ref"]}" oninput="upd(${i},'Quote Ref',this.value)"></td>
+<td><input value="${r["Project Name"]}" oninput="upd(${i},'Project Name',this.value)"></td>
+<td><input value="${r["Project Manager"]}" oninput="upd(${i},'Project Manager',this.value)"></td>
+<td><input value="${r["Candidate"]}" oninput="upd(${i},'Candidate',this.value)"></td>
+<td><input type="date" value="${r["Enquiry Received"]}" onchange="upd(${i},'Enquiry Received',this.value)"></td>
+<td><input type="date" value="${r["Deadline"]}" onchange="upd(${i},'Deadline',this.value)"></td>
+<td class="reminder">${reminder}</td>
+<td>
+<select onchange="upd(${i},'Status',this.value)">
+<option ${r.Status=="Not Started"?"selected":""}>Not Started</option>
+<option ${r.Status=="Working"?"selected":""}>Working</option>
+<option ${r.Status=="Submitted"?"selected":""}>Submitted</option>
+</select>
+</td>
+<td><input type="number" value="${r.Value}" oninput="upd(${i},'Value',this.value)"></td>
+</tr>`;
+    });
+}
+
+function upd(i, key, value) {
+  data[i][key] = value;
+  save();
+}
+
+/* EXCEL DOWNLOAD */
+function downloadExcel() {
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, currentMonth);
+  XLSX.writeFile(wb, `Enquiry_${currentMonth}.xlsx`);
+}
