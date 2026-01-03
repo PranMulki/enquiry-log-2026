@@ -30,4 +30,39 @@
       <select id="filterManager" onchange="render()">
         <option value="">All Managers</option>
         <option>Mr. Vishal</option>
-        <option>Mr. Mukesh</opt
+        <option>Mr. Mukesh</option>
+        <option>Mr. Irshad</option>
+        <option>Mr. Prem</option>
+        <option>Ms. Tania</option>
+        <option>Mr. Robbin</option>
+      </select>
+    </div>
+
+    <button onclick="addRow()">➕ Add Enquiry</button>
+    <button onclick="downloadExcel()">⬇️ Download Excel</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Sl.No</th>
+          <th>Quote Ref</th>
+          <th>Project Name</th>
+          <th>Project Manager</th>
+          <th>Candidate</th>
+          <th>Enquiry Received</th>
+          <th>Deadline</th>
+          <th>Reminder</th>
+          <th>Status</th>
+          <th>Value (AED)</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
