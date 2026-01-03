@@ -30,11 +30,17 @@ button{
   font-size:12px;
 }
 
-input,select{
+input,select,textarea{
   font-size:12px;
   height:22px;
   border:1px solid #bfbfbf;
   box-sizing:border-box;
+}
+
+textarea{
+  width:100%;
+  resize:none;
+  padding:2px 4px;
 }
 
 table{
@@ -78,6 +84,10 @@ thead th{
 }
 
 .locked{background:#f0f0f0}
+
+.date{
+  text-align:center;
+}
 </style>
 </head>
 
@@ -180,11 +190,19 @@ function save(){
   render();
 }
 
+/* DATE FORMAT */
+function formatDate(v){
+  if(!v) return "";
+  const n=v.replace(/\D/g,"");
+  if(n.length<6) return v;
+  return `${n.slice(0,2)}/${n.slice(2,4)}/${n.slice(4,6)}`;
+}
+
 /* LOGIC */
 function nextMainQuote(){
   let all=[];
   Object.keys(localStorage).forEach(k=>{
-    if(k.startsWith("ENQUIRY_") && !k.includes("CUR")){
+    if(k.startsWith("ENQUIRY_")&&!k.includes("CUR")){
       (JSON.parse(localStorage.getItem(k))||[])
         .filter(r=>r.type==="Main")
         .forEach(r=>all.push(r.base));
@@ -207,8 +225,8 @@ function addMain(){
 }
 
 function addSub(base,type){
-  const p=rows.find(r=>r.base===base && r.type==="Main");
-  const n=rows.filter(r=>r.base===base && r.type===type).length+1;
+  const p=rows.find(r=>r.base===base&&r.type==="Main");
+  const n=rows.filter(r=>r.base===base&&r.type===type).length+1;
   rows.push({
     month:"",sl:"",base,
     quote:`${base}-${type==="Additional"?"A":"R"}${n}`,
@@ -242,7 +260,7 @@ function render(){
 
   rows.filter(r=>{
     if(managerFilter.value){
-      const p=r.type==="Main"?r:rows.find(x=>x.base===r.base && x.type==="Main");
+      const p=r.type==="Main"?r:rows.find(x=>x.base===r.base&&x.type==="Main");
       if(!p||p.manager!==managerFilter.value) return false;
     }
     return Object.values(r).join(" ").toLowerCase().includes(q);
@@ -254,20 +272,38 @@ function render(){
 <td>${r.sl}</td>
 <td>${r.quote}</td>
 <td class="${r.type!=="Main"?"indent":""}">${r.type!=="Main"?"↳ ":""}${r.type}</td>
-<td><input ${locked?"disabled class=locked":""} value="${r.project}"
- oninput="rows[${i}].project=this.value;save()"></td>
-<td><select ${locked?"disabled":""}
- onchange="rows[${i}].manager=this.value;save()">
+
+<td>
+<textarea rows="1" ${locked?"disabled class=locked":""}
+onblur="rows[${i}].project=this.value;save()">${r.project}</textarea>
+</td>
+
+<td>
+<select ${locked?"disabled":""}
+onchange="rows[${i}].manager=this.value;save()">
 <option></option>${managers.map(m=>`<option ${m===r.manager?"selected":""}>${m}</option>`).join("")}
-</select></td>
-<td><select ${locked?"disabled":""}
- onchange="rows[${i}].candidate=this.value;save()">
+</select>
+</td>
+
+<td>
+<select ${locked?"disabled":""}
+onchange="rows[${i}].candidate=this.value;save()">
 <option></option>${candidates.map(c=>`<option ${c===r.candidate?"selected":""}>${c}</option>`).join("")}
-</select></td>
-<td><input type="date" value="${r.received}"
- onchange="rows[${i}].received=this.value;save()"></td>
-<td><input type="date" value="${r.deadline}"
- onchange="rows[${i}].deadline=this.value;save()"></td>
+</select>
+</td>
+
+<td>
+<input class="date" placeholder="dd/mm/yy"
+value="${r.received}"
+onblur="rows[${i}].received=formatDate(this.value);save()">
+</td>
+
+<td>
+<input class="date" placeholder="dd/mm/yy"
+value="${r.deadline}"
+onblur="rows[${i}].deadline=formatDate(this.value);save()">
+</td>
+
 <td>
 <select onchange="rows[${i}].status=this.value;save()">
 <option ${r.status==="Not Started"?"selected":""}>Not Started</option>
@@ -275,9 +311,15 @@ function render(){
 <option ${r.status==="Submitted"?"selected":""}>Submitted</option>
 </select>
 </td>
-<td><input ${locked?"disabled class=locked":""} type="number"
- value="${r.value}" oninput="rows[${i}].value=this.value;save()"></td>
-<td>${r.type==="Main"
+
+<td>
+<input type="number" ${locked?"disabled class=locked":""}
+value="${r.value}"
+onblur="rows[${i}].value=this.value;save()">
+</td>
+
+<td>
+${r.type==="Main"
 ?`<button class="icon-btn" onclick="addSub(${r.base},'Additional')">+A</button>
   <button class="icon-btn" onclick="addSub(${r.base},'Revision')">+R</button>`
 :`<span class="delete" onclick="removeRow(${i})">✖</span>`}
