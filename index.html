@@ -13,53 +13,53 @@
     }
 
     h2 {
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
-    label {
+    .header-ref {
+      font-size: 12px;
       font-weight: bold;
-    }
-
-    select, button, input {
-      padding: 6px;
-      margin: 5px 0;
-      width: 100%;
-      box-sizing: border-box;
+      margin-bottom: 10px;
     }
 
     button {
       background: #0b2c5d;
       color: white;
       border: none;
+      padding: 8px;
+      width: 100%;
+      margin: 5px 0;
       cursor: pointer;
-      font-size: 14px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
       background: white;
-      margin-top: 10px;
-      font-size: 13px;
+      font-size: 12px;
     }
 
     th, td {
       border: 1px solid #ccc;
-      padding: 6px;
+      padding: 5px;
       text-align: center;
     }
 
     th {
       background: #e9eef5;
     }
+
+    input, select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 4px;
+    }
   </style>
 </head>
 <body>
 
-<h2>Enquiry Log</h2>
-
-<label>Select Month</label>
-<select id="monthSelect"></select>
+<h2>Enquiry Log – January 2026</h2>
+<div class="header-ref">IRS-FORM-13-01</div>
 
 <button onclick="addRow()">➕ Add Enquiry</button>
 <button onclick="downloadExcel()">⬇️ Download Excel</button>
@@ -68,7 +68,14 @@
   <thead>
     <tr>
       <th>Sl.No</th>
+      <th>Quote Ref</th>
       <th>Project Name</th>
+      <th>Project Manager</th>
+      <th>Candidate</th>
+      <th>Enquiry Received</th>
+      <th>Deadline</th>
+      <th>Status</th>
+      <th>Submitted Value</th>
     </tr>
   </thead>
   <tbody id="tableBody"></tbody>
@@ -77,118 +84,97 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
-/* ================= STORAGE ================= */
-const STORAGE_KEY = "ENQUIRY_LOG_2026_2035";
+/* ================= CONFIG ================= */
+const STORAGE_KEY = "ENQUIRY_LOG_JAN_2026";
 
-/* ================= STATE ================= */
-let store = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-let currentMonth = "";
-
-/* ================= ELEMENTS ================= */
-const monthSelect = document.getElementById("monthSelect");
-const tableBody = document.getElementById("tableBody");
-
-/* ================= INIT MONTHS (FIXED) ================= */
-function initMonths() {
-  monthSelect.innerHTML = "";
-
-  const startYear = 2026;
-  const startMonthIndex = 0; // January
-  const totalMonths = 10 * 12; // 10 years
-
-  for (let i = 0; i < totalMonths; i++) {
-    const year = startYear + Math.floor((startMonthIndex + i) / 12);
-    const month = (startMonthIndex + i) % 12;
-
-    const value =
-      year + "-" + String(month + 1).padStart(2, "0");
-
-    const label = new Date(year, month, 1).toLocaleString("en-US", {
-      month: "long",
-      year: "numeric"
-    });
-
-    monthSelect.add(new Option(label, value));
-  }
-
-  currentMonth = monthSelect.options[0].value;
-  monthSelect.value = currentMonth;
-  loadMonth();
-}
-
-/* ================= MONTH CHANGE ================= */
-monthSelect.onchange = () => {
-  currentMonth = monthSelect.value;
-  loadMonth();
-};
-
-/* ================= LOAD MONTH ================= */
-function loadMonth() {
-  if (!store[currentMonth]) {
-    store[currentMonth] = [];
-  }
-  render();
-}
+/* ================= DATA ================= */
+let rows = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 
 /* ================= ADD ROW ================= */
 function addRow() {
-  store[currentMonth].push({
-    project: ""
+  rows.push({
+    "Sl.No": rows.length + 1,
+    "Quote Ref": "202601-" + (rows.length + 1),
+    "Project Name": "",
+    "Project Manager": "",
+    "Candidate": "",
+    "Enquiry Received": "",
+    "Deadline": "",
+    "Status": "Not Started",
+    "Submitted Value": ""
   });
   save();
 }
 
 /* ================= SAVE ================= */
 function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
   render();
 }
 
 /* ================= RENDER ================= */
 function render() {
-  tableBody.innerHTML = "";
+  const body = document.getElementById("tableBody");
+  body.innerHTML = "";
 
-  store[currentMonth].forEach((row, i) => {
-    tableBody.innerHTML += `
-      <tr>
-        <td>${i + 1}</td>
-        <td>
-          <input
-            value="${row.project}"
-            oninput="updateRow(${i}, this.value)"
-          >
-        </td>
-      </tr>
-    `;
+  rows.forEach((r, i) => {
+    body.innerHTML += `
+<tr>
+<td>${i + 1}</td>
+<td><input value="${r["Quote Ref"]}" oninput="upd(${i},'Quote Ref',this.value)"></td>
+<td><input value="${r["Project Name"]}" oninput="upd(${i},'Project Name',this.value)"></td>
+<td>
+  <select onchange="upd(${i},'Project Manager',this.value)">
+    <option></option>
+    <option ${r["Project Manager"]=="Mr. Vishal"?"selected":""}>Mr. Vishal</option>
+    <option ${r["Project Manager"]=="Mr. Mukesh"?"selected":""}>Mr. Mukesh</option>
+    <option ${r["Project Manager"]=="Mr. Irshad"?"selected":""}>Mr. Irshad</option>
+    <option ${r["Project Manager"]=="Mr. Prem"?"selected":""}>Mr. Prem</option>
+    <option ${r["Project Manager"]=="Ms. Tania"?"selected":""}>Ms. Tania</option>
+    <option ${r["Project Manager"]=="Mr. Robbin"?"selected":""}>Mr. Robbin</option>
+  </select>
+</td>
+<td>
+  <select onchange="upd(${i},'Candidate',this.value)">
+    <option></option>
+    <option ${r["Candidate"]=="Praneeth"?"selected":""}>Praneeth</option>
+    <option ${r["Candidate"]=="Chetaka"?"selected":""}>Chetaka</option>
+  </select>
+</td>
+<td><input type="date" value="${r["Enquiry Received"]}" onchange="upd(${i},'Enquiry Received',this.value)"></td>
+<td><input type="date" value="${r["Deadline"]}" onchange="upd(${i},'Deadline',this.value)"></td>
+<td>
+  <select onchange="upd(${i},'Status',this.value)">
+    <option ${r["Status"]=="Not Started"?"selected":""}>Not Started</option>
+    <option ${r["Status"]=="Working"?"selected":""}>Working</option>
+    <option ${r["Status"]=="Submitted"?"selected":""}>Submitted</option>
+  </select>
+</td>
+<td><input type="number" value="${r["Submitted Value"]}" oninput="upd(${i},'Submitted Value',this.value)"></td>
+</tr>`;
   });
 }
 
 /* ================= UPDATE ================= */
-function updateRow(index, value) {
-  store[currentMonth][index].project = value;
+function upd(i, key, value) {
+  rows[i][key] = value;
   save();
 }
 
-/* ================= EXCEL DOWNLOAD ================= */
+/* ================= EXCEL ================= */
 function downloadExcel() {
-  const rows = store[currentMonth].map((r, i) => ({
-    "Sl.No": i + 1,
-    "Project Name": r.project
-  }));
-
   if (!rows.length) {
-    alert("No data for this month");
+    alert("No data");
     return;
   }
-
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, currentMonth);
-  XLSX.writeFile(wb, `Enquiry_${currentMonth}.xlsx`);
+  XLSX.utils.book_append_sheet(wb, ws, "January 2026");
+  XLSX.writeFile(wb, "Enquiry_January_2026.xlsx");
 }
 
 /* ================= START ================= */
-initMonths();
+render();
 </script>
 
 </body>
