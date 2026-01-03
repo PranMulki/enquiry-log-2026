@@ -1,1 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Enquiry Log 2026</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
+<!-- LOGIN -->
+<div id="loginBox" class="login">
+  <h3>Enquiry Log Login</h3>
+  <input type="password" id="password" placeholder="Enter password">
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <header>Enquiry Log 2026</header>
+
+  <div class="container">
+    <button onclick="addRow()">➕ Add Enquiry</button>
+    <button onclick="downloadExcel()">⬇️ Download Excel</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Sl</th>
+          <th>Quote</th>
+          <th>Project</th>
+          <th>Manager</th>
+          <th>Candidate</th>
+          <th>Received</th>
+          <th>Deadline</th>
+          <th>Reminder</th>
+          <th>Status</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
