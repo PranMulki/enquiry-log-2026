@@ -1,1 +1,61 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+}
 
+header {
+  background: #0b2c5d;
+  color: white;
+  padding: 12px;
+  text-align: center;
+}
+
+.container {
+  padding: 10px;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  background: #0b2c5d;
+  color: white;
+  border: none;
+  font-size: 15px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  font-size: 13px;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 6px;
+  text-align: center;
+}
+
+input, select {
+  width: 100%;
+  padding: 4px;
+}
+
+.reminder {
+  color: red;
+  font-weight: bold;
+}
+
+.login {
+  max-width: 300px;
+  margin: 120px auto;
+  background: white;
+  padding: 20px;
+  text-align: center;
+}
+
+.hidden {
+  display: none;
+}
