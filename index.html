@@ -78,7 +78,7 @@
 
 <script>
 /* ================= STORAGE ================= */
-const STORAGE_KEY = "ENQUIRY_LOG_2026_10YRS";
+const STORAGE_KEY = "ENQUIRY_LOG_2026_2035";
 
 /* ================= STATE ================= */
 let store = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
@@ -88,28 +88,27 @@ let currentMonth = "";
 const monthSelect = document.getElementById("monthSelect");
 const tableBody = document.getElementById("tableBody");
 
-/* ================= INIT MONTHS ================= */
+/* ================= INIT MONTHS (FIXED) ================= */
 function initMonths() {
   monthSelect.innerHTML = "";
 
   const startYear = 2026;
-  const yearsToShow = 10; // next 10 years
-  const start = new Date(startYear, 0, 1); // Jan 2026
-  const end = new Date(startYear + yearsToShow - 1, 11, 1); // Dec 2035
+  const startMonthIndex = 0; // January
+  const totalMonths = 10 * 12; // 10 years
 
-  let d = new Date(start);
+  for (let i = 0; i < totalMonths; i++) {
+    const year = startYear + Math.floor((startMonthIndex + i) / 12);
+    const month = (startMonthIndex + i) % 12;
 
-  while (d <= end) {
     const value =
-      d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      year + "-" + String(month + 1).padStart(2, "0");
 
-    const label = d.toLocaleString("en-US", {
+    const label = new Date(year, month, 1).toLocaleString("en-US", {
       month: "long",
       year: "numeric"
     });
 
     monthSelect.add(new Option(label, value));
-    d.setMonth(d.getMonth() + 1);
   }
 
   currentMonth = monthSelect.options[0].value;
@@ -149,4 +148,48 @@ function save() {
 function render() {
   tableBody.innerHTML = "";
 
-  store[currentMonth].forEach((
+  store[currentMonth].forEach((row, i) => {
+    tableBody.innerHTML += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>
+          <input
+            value="${row.project}"
+            oninput="updateRow(${i}, this.value)"
+          >
+        </td>
+      </tr>
+    `;
+  });
+}
+
+/* ================= UPDATE ================= */
+function updateRow(index, value) {
+  store[currentMonth][index].project = value;
+  save();
+}
+
+/* ================= EXCEL DOWNLOAD ================= */
+function downloadExcel() {
+  const rows = store[currentMonth].map((r, i) => ({
+    "Sl.No": i + 1,
+    "Project Name": r.project
+  }));
+
+  if (!rows.length) {
+    alert("No data for this month");
+    return;
+  }
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, currentMonth);
+  XLSX.writeFile(wb, `Enquiry_${currentMonth}.xlsx`);
+}
+
+/* ================= START ================= */
+initMonths();
+</script>
+
+</body>
+</html>
