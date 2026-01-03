@@ -6,88 +6,46 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{
-  font-family:Calibri,Arial,sans-serif;
-  background:#f4f6f8;
-  padding:10px;
-}
+body{font-family:Calibri,Arial,sans-serif;background:#f4f6f8;padding:10px}
 h2{margin:0 0 5px 0}
 .header-ref{font-size:12px;font-weight:bold;margin-bottom:8px}
 
-.topbar{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-  margin-bottom:10px;
-}
+.topbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 
 button{
-  background:#0b2c5d;
-  color:#fff;
-  border:none;
-  padding:6px 10px;
-  cursor:pointer;
-  font-size:12px;
+  background:#0b2c5d;color:#fff;border:none;
+  padding:6px 10px;font-size:12px;cursor:pointer
 }
 
 input,select,textarea{
-  font-size:12px;
-  height:22px;
-  border:1px solid #bfbfbf;
-  box-sizing:border-box;
+  font-size:12px;height:22px;border:1px solid #bfbfbf;
+  box-sizing:border-box
 }
 
-textarea{
-  width:100%;
-  resize:none;
-  padding:2px 4px;
-}
+textarea{width:100%;resize:none;padding:2px 4px}
 
-table{
-  width:100%;
-  border-collapse:collapse;
-  background:#fff;
-  font-size:12px;
-}
+table{width:100%;border-collapse:collapse;background:#fff;font-size:12px}
 
-th,td{
-  border:1px solid #d0d0d0;
-  padding:4px 6px;
-  text-align:center;
-}
+th,td{border:1px solid #d0d0d0;padding:4px 6px;text-align:center}
 
 thead th{
-  position:sticky;
-  top:0;
-  background:#e9eef5;
-  z-index:5;
+  position:sticky;top:0;background:#e9eef5;z-index:5
 }
 
 .main-row{background:#fff}
 .sub-row{background:#fafafa}
-
 .indent{text-align:left;padding-left:20px}
 
 .icon-btn{
-  background:transparent;
-  border:none;
-  color:#0b2c5d;
-  font-weight:bold;
-  cursor:pointer;
-  font-size:12px;
+  background:transparent;border:none;color:#0b2c5d;
+  font-weight:bold;font-size:12px;cursor:pointer
 }
 
 .delete{
-  color:#c0392b;
-  cursor:pointer;
-  font-size:12px;
+  color:#c0392b;cursor:pointer;font-size:12px;margin-left:4px
 }
 
 .locked{background:#f0f0f0}
-
-.date{
-  text-align:center;
-}
 </style>
 </head>
 
@@ -158,7 +116,7 @@ const managerFilter=document.getElementById("managerFilter");
 const searchBox=document.getElementById("searchBox");
 const currencySelect=document.getElementById("currencySelect");
 
-/* INIT UI */
+/* INIT */
 months.forEach(m=>monthSelect.add(new Option(m,m)));
 monthSelect.value=currentMonth;
 managers.forEach(m=>managerFilter.add(new Option(m,m)));
@@ -172,8 +130,8 @@ currencySelect.onchange=()=>{
   render();
 };
 
-document.getElementById("addBtn").onclick=addMain;
-document.getElementById("excelBtn").onclick=downloadExcel;
+addBtn.onclick=addMain;
+excelBtn.onclick=downloadExcel;
 
 /* STORAGE */
 const key=()=>`ENQUIRY_${currentMonth}`;
@@ -190,12 +148,11 @@ function save(){
   render();
 }
 
-/* DATE FORMAT */
-function formatDate(v){
-  if(!v) return "";
-  const n=v.replace(/\D/g,"");
-  if(n.length<6) return v;
-  return `${n.slice(0,2)}/${n.slice(2,4)}/${n.slice(4,6)}`;
+/* HELPERS */
+function fmtDate(d){
+  if(!d) return "";
+  const [y,m,dd]=d.split("-");
+  return `${dd}/${m}/${y.slice(2)}`;
 }
 
 /* LOGIC */
@@ -238,6 +195,12 @@ function addSub(base,type){
   save();
 }
 
+function deleteMain(base){
+  if(!confirm("Delete this quote and all its additions/revisions?")) return;
+  rows=rows.filter(r=>r.base!==base);
+  save();
+}
+
 function removeRow(i){
   rows.splice(i,1);
   save();
@@ -249,8 +212,7 @@ function updateTotal(){
     const v=parseFloat(r.value);
     return isNaN(v)?s:s+v;
   },0);
-  document.getElementById("monthTotal").innerText=
-    `Total Value for ${currentMonth} : ${currency} ${total.toLocaleString()}`;
+  monthTotal.innerText=`Total Value for ${currentMonth} : ${currency} ${total.toLocaleString()}`;
 }
 
 /* RENDER */
@@ -273,35 +235,29 @@ function render(){
 <td>${r.quote}</td>
 <td class="${r.type!=="Main"?"indent":""}">${r.type!=="Main"?"↳ ":""}${r.type}</td>
 
-<td>
-<textarea rows="1" ${locked?"disabled class=locked":""}
-onblur="rows[${i}].project=this.value;save()">${r.project}</textarea>
-</td>
+<td><textarea ${locked?"disabled class=locked":""}
+onblur="rows[${i}].project=this.value;save()">${r.project}</textarea></td>
 
-<td>
-<select ${locked?"disabled":""}
+<td><select ${locked?"disabled":""}
 onchange="rows[${i}].manager=this.value;save()">
 <option></option>${managers.map(m=>`<option ${m===r.manager?"selected":""}>${m}</option>`).join("")}
-</select>
-</td>
+</select></td>
 
-<td>
-<select ${locked?"disabled":""}
+<td><select ${locked?"disabled":""}
 onchange="rows[${i}].candidate=this.value;save()">
 <option></option>${candidates.map(c=>`<option ${c===r.candidate?"selected":""}>${c}</option>`).join("")}
-</select>
+</select></td>
+
+<td>
+<input type="date" value="${r.received}"
+onchange="rows[${i}].received=this.value;save()"><br>
+<small>${fmtDate(r.received)}</small>
 </td>
 
 <td>
-<input class="date" placeholder="dd/mm/yy"
-value="${r.received}"
-onblur="rows[${i}].received=formatDate(this.value);save()">
-</td>
-
-<td>
-<input class="date" placeholder="dd/mm/yy"
-value="${r.deadline}"
-onblur="rows[${i}].deadline=formatDate(this.value);save()">
+<input type="date" value="${r.deadline}"
+onchange="rows[${i}].deadline=this.value;save()"><br>
+<small>${fmtDate(r.deadline)}</small>
 </td>
 
 <td>
@@ -312,16 +268,14 @@ onblur="rows[${i}].deadline=formatDate(this.value);save()">
 </select>
 </td>
 
-<td>
-<input type="number" ${locked?"disabled class=locked":""}
-value="${r.value}"
-onblur="rows[${i}].value=this.value;save()">
-</td>
+<td><input type="number" ${locked?"disabled class=locked":""}
+onblur="rows[${i}].value=this.value;save()" value="${r.value}"></td>
 
 <td>
 ${r.type==="Main"
 ?`<button class="icon-btn" onclick="addSub(${r.base},'Additional')">+A</button>
-  <button class="icon-btn" onclick="addSub(${r.base},'Revision')">+R</button>`
+  <button class="icon-btn" onclick="addSub(${r.base},'Revision')">+R</button>
+  <span class="delete" onclick="deleteMain(${r.base})">✖</span>`
 :`<span class="delete" onclick="removeRow(${i})">✖</span>`}
 </td>
 </tr>`;
@@ -332,9 +286,14 @@ ${r.type==="Main"
 /* EXCEL */
 function downloadExcel(){
   if(!rows.length) return alert("No data");
+  const data=rows.map(r=>({
+    ...r,
+    "Enquiry Received":fmtDate(r.received),
+    "Deadline":fmtDate(r.deadline),
+    Currency:currency
+  }));
   const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.json_to_sheet(rows.map(r=>({...r,Currency:currency})));
-  XLSX.utils.book_append_sheet(wb,ws,currentMonth);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),currentMonth);
   XLSX.writeFile(wb,`Enquiry_${currentMonth}_${currency}.xlsx`);
 }
 
