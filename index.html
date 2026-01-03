@@ -7,45 +7,22 @@
 
 <style>
 body{font-family:Calibri,Arial,sans-serif;background:#f4f6f8;padding:10px}
-h2{margin:0 0 5px 0}
+h2{margin:0 0 5px}
 .header-ref{font-size:12px;font-weight:bold;margin-bottom:8px}
-
 .topbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-
-button{
-  background:#0b2c5d;color:#fff;border:none;
-  padding:6px 10px;font-size:12px;cursor:pointer
-}
-
-input,select,textarea{
-  font-size:12px;height:22px;border:1px solid #bfbfbf;
-  box-sizing:border-box
-}
-
-textarea{width:100%;resize:none;padding:2px 4px}
-
+button{background:#0b2c5d;color:#fff;border:none;padding:6px 10px;font-size:12px;cursor:pointer}
+input,select,textarea{font-size:12px;border:1px solid #bfbfbf;box-sizing:border-box}
+textarea{width:100%;resize:none;height:22px;padding:2px 4px}
 table{width:100%;border-collapse:collapse;background:#fff;font-size:12px}
-
 th,td{border:1px solid #d0d0d0;padding:4px 6px;text-align:center}
-
-thead th{
-  position:sticky;top:0;background:#e9eef5;z-index:5
-}
-
-.main-row{background:#fff}
-.sub-row{background:#fafafa}
-.indent{text-align:left;padding-left:20px}
-
-.icon-btn{
-  background:transparent;border:none;color:#0b2c5d;
-  font-weight:bold;font-size:12px;cursor:pointer
-}
-
-.delete{
-  color:#c0392b;cursor:pointer;font-size:12px;margin-left:4px
-}
-
+thead th{position:sticky;top:0;background:#e9eef5;z-index:5}
+.main{background:#fff}
+.sub{background:#fafafa}
+.indent{text-align:left;padding-left:18px}
+.icon{background:none;border:none;color:#0b2c5d;font-weight:bold;cursor:pointer}
+.del{color:#c0392b;cursor:pointer;margin-left:4px}
 .locked{background:#f0f0f0}
+small{font-size:10px;color:#555}
 </style>
 </head>
 
@@ -67,10 +44,10 @@ thead th{
     <option value="">All Managers</option>
   </select>
 
-  <input id="searchBox" type="text" placeholder="Search anything…">
+  <input id="searchBox" placeholder="Search anything…">
 
-  <button type="button" id="addBtn">➕ Add Main Quote</button>
-  <button type="button" id="excelBtn">⬇️ Download Excel</button>
+  <button onclick="addMain()">➕ Add Main Quote</button>
+  <button onclick="downloadExcel()">⬇️ Download Excel</button>
 </div>
 
 <table>
@@ -78,226 +55,252 @@ thead th{
 <tr>
 <th>Month</th>
 <th>Sl.No</th>
-<th>Quote No</th>
+<th>Quote</th>
 <th>Type</th>
 <th>Project</th>
 <th>Manager</th>
 <th>Candidate</th>
-<th>Enquiry Received</th>
+<th>Enquiry</th>
 <th>Deadline</th>
 <th>Status</th>
 <th>Value</th>
 <th>Action</th>
 </tr>
 </thead>
-<tbody id="body"></tbody>
+<tbody id="tbody"></tbody>
 </table>
 
-<div id="monthTotal" style="margin-top:8px;text-align:right;font-weight:bold"></div>
+<div id="total" style="margin-top:8px;text-align:right;font-weight:bold"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
-/* CONFIG */
-const QUOTE_START=8669;
-const managers=["Mr. Vishal","Mr. Mukesh","Mr. Irshad","Mr. Prem","Ms. Tania","Mr. Robbin"];
-const candidates=["Praneeth","Chetaka"];
-const months=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+/* ===== CONFIG ===== */
+const START_QUOTE = 8669;
+const managers = ["Mr. Vishal","Mr. Mukesh","Mr. Irshad","Mr. Prem","Ms. Tania","Mr. Robbin"];
+const candidates = ["Praneeth","Chetaka"];
+const months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 
-/* STATE */
-let currentMonth=months[new Date().getMonth()];
-let rows=[];
-let currency="AED";
+/* ===== STATE ===== */
+let rows = [];
+let month = months[new Date().getMonth()];
+let currency = "AED";
 
-/* ELEMENTS */
-const body=document.getElementById("body");
-const monthSelect=document.getElementById("monthSelect");
-const managerFilter=document.getElementById("managerFilter");
-const searchBox=document.getElementById("searchBox");
-const currencySelect=document.getElementById("currencySelect");
+/* ===== ELEMENTS ===== */
+const tbody = document.getElementById("tbody");
+const monthSelect = document.getElementById("monthSelect");
+const managerFilter = document.getElementById("managerFilter");
+const searchBox = document.getElementById("searchBox");
+const currencySelect = document.getElementById("currencySelect");
 
-/* INIT */
+/* ===== INIT ===== */
 months.forEach(m=>monthSelect.add(new Option(m,m)));
-monthSelect.value=currentMonth;
+monthSelect.value = month;
 managers.forEach(m=>managerFilter.add(new Option(m,m)));
 
-monthSelect.onchange=()=>{currentMonth=monthSelect.value;load()};
-managerFilter.onchange=render;
-searchBox.oninput=render;
-currencySelect.onchange=()=>{
-  currency=currencySelect.value;
-  localStorage.setItem(currencyKey(),currency);
-  render();
-};
+monthSelect.onchange = ()=>{ month = monthSelect.value; load(); };
+managerFilter.onchange = render;
+searchBox.oninput = render;
+currencySelect.onchange = ()=>{ currency = currencySelect.value; saveCurrency(); render(); };
 
-addBtn.onclick=addMain;
-excelBtn.onclick=downloadExcel;
-
-/* STORAGE */
-const key=()=>`ENQUIRY_${currentMonth}`;
-const currencyKey=()=>`ENQUIRY_CUR_${currentMonth}`;
+/* ===== STORAGE ===== */
+const key = ()=>`ENQ_${month}`;
+const ckey = ()=>`ENQ_CUR_${month}`;
 
 function load(){
-  rows=JSON.parse(localStorage.getItem(key()))||[];
-  currency=localStorage.getItem(currencyKey())||"AED";
-  currencySelect.value=currency;
+  rows = JSON.parse(localStorage.getItem(key())) || [];
+  currency = localStorage.getItem(ckey()) || "AED";
+  currencySelect.value = currency;
   render();
 }
 function save(){
-  localStorage.setItem(key(),JSON.stringify(rows));
+  localStorage.setItem(key(), JSON.stringify(rows));
   render();
 }
-
-/* HELPERS */
-function fmtDate(d){
-  if(!d) return "";
-  const [y,m,dd]=d.split("-");
-  return `${dd}/${m}/${y.slice(2)}`;
+function saveCurrency(){
+  localStorage.setItem(ckey(), currency);
 }
 
-/* LOGIC */
-function nextMainQuote(){
+/* ===== HELPERS ===== */
+const uid = ()=>Math.random().toString(36).slice(2,9);
+
+function isoToDMY(v){
+  if(!v) return "";
+  const [y,m,d] = v.split("-");
+  return `${d}/${m}/${y.slice(2)}`;
+}
+
+function updateRow(id, field, value){
+  const r = rows.find(x=>x.id===id);
+  if(!r) return;
+  r[field] = value;
+  save();
+}
+
+/* ===== LOGIC ===== */
+function nextQuote(){
   let all=[];
   Object.keys(localStorage).forEach(k=>{
-    if(k.startsWith("ENQUIRY_")&&!k.includes("CUR")){
+    if(k.startsWith("ENQ_")&&!k.includes("CUR")){
       (JSON.parse(localStorage.getItem(k))||[])
         .filter(r=>r.type==="Main")
         .forEach(r=>all.push(r.base));
     }
   });
-  return all.length?Math.max(...all)+1:QUOTE_START;
+  return all.length ? Math.max(...all)+1 : START_QUOTE;
 }
 
 function addMain(){
-  const base=nextMainQuote();
-  const sl=rows.filter(r=>r.type==="Main").length+1;
+  const base = nextQuote();
   rows.push({
-    month:currentMonth,sl,base,
-    quote:String(base),type:"Main",
-    project:"",manager:"",candidate:"",
-    received:"",deadline:"",
-    status:"Not Started",value:""
+    id: uid(),
+    month,
+    sl: rows.filter(r=>r.type==="Main").length+1,
+    base,
+    quote: String(base),
+    type:"Main",
+    project:"",
+    manager:"",
+    candidate:"",
+    received:"",
+    deadline:"",
+    status:"Not Started",
+    value:""
   });
   save();
 }
 
 function addSub(base,type){
-  const p=rows.find(r=>r.base===base&&r.type==="Main");
-  const n=rows.filter(r=>r.base===base&&r.type===type).length+1;
+  const parent = rows.find(r=>r.base===base && r.type==="Main");
+  const n = rows.filter(r=>r.base===base && r.type===type).length+1;
   rows.push({
-    month:"",sl:"",base,
+    id: uid(),
+    month:"",
+    sl:"",
+    base,
     quote:`${base}-${type==="Additional"?"A":"R"}${n}`,
-    type,project:"",
-    manager:p.manager,candidate:p.candidate,
-    received:"",deadline:"",
-    status:"Not Started",value:""
+    type,
+    project:"",
+    manager:parent.manager,
+    candidate:parent.candidate,
+    received:"",
+    deadline:"",
+    status:"Not Started",
+    value:""
   });
   save();
 }
 
 function deleteMain(base){
-  if(!confirm("Delete this quote and all its additions/revisions?")) return;
-  rows=rows.filter(r=>r.base!==base);
+  if(!confirm("Delete this quote and all its additions / revisions?")) return;
+  rows = rows.filter(r=>r.base!==base);
   save();
 }
 
-function removeRow(i){
-  rows.splice(i,1);
+function deleteRow(id){
+  rows = rows.filter(r=>r.id!==id);
   save();
 }
 
-/* TOTAL */
-function updateTotal(){
-  const total=rows.reduce((s,r)=>{
-    const v=parseFloat(r.value);
-    return isNaN(v)?s:s+v;
-  },0);
-  monthTotal.innerText=`Total Value for ${currentMonth} : ${currency} ${total.toLocaleString()}`;
-}
-
-/* RENDER */
+/* ===== RENDER ===== */
 function render(){
-  body.innerHTML="";
-  const q=searchBox.value.toLowerCase();
+  tbody.innerHTML="";
+  const q = searchBox.value.toLowerCase();
 
   rows.filter(r=>{
     if(managerFilter.value){
-      const p=r.type==="Main"?r:rows.find(x=>x.base===r.base&&x.type==="Main");
-      if(!p||p.manager!==managerFilter.value) return false;
+      const p = r.type==="Main"?r:rows.find(x=>x.base===r.base && x.type==="Main");
+      if(!p || p.manager!==managerFilter.value) return false;
     }
     return Object.values(r).join(" ").toLowerCase().includes(q);
-  }).forEach((r,i)=>{
-    const locked=r.status==="Submitted";
-    body.innerHTML+=`
-<tr class="${r.type==="Main"?"main-row":"sub-row"}">
+  }).forEach(r=>{
+    const locked = r.status==="Submitted";
+    tbody.innerHTML += `
+<tr class="${r.type==="Main"?"main":"sub"}">
 <td>${r.month}</td>
 <td>${r.sl}</td>
 <td>${r.quote}</td>
 <td class="${r.type!=="Main"?"indent":""}">${r.type!=="Main"?"↳ ":""}${r.type}</td>
 
-<td><textarea ${locked?"disabled class=locked":""}
-onblur="rows[${i}].project=this.value;save()">${r.project}</textarea></td>
+<td>
+<textarea ${locked?"disabled class=locked":""}
+onblur="updateRow('${r.id}','project',this.value)">${r.project}</textarea>
+</td>
 
-<td><select ${locked?"disabled":""}
-onchange="rows[${i}].manager=this.value;save()">
+<td>
+<select ${locked?"disabled":""}
+onchange="updateRow('${r.id}','manager',this.value)">
 <option></option>${managers.map(m=>`<option ${m===r.manager?"selected":""}>${m}</option>`).join("")}
-</select></td>
+</select>
+</td>
 
-<td><select ${locked?"disabled":""}
-onchange="rows[${i}].candidate=this.value;save()">
+<td>
+<select ${locked?"disabled":""}
+onchange="updateRow('${r.id}','candidate',this.value)">
 <option></option>${candidates.map(c=>`<option ${c===r.candidate?"selected":""}>${c}</option>`).join("")}
-</select></td>
+</select>
+</td>
 
 <td>
 <input type="date" value="${r.received}"
-onchange="rows[${i}].received=this.value;save()"><br>
-<small>${fmtDate(r.received)}</small>
+onchange="updateRow('${r.id}','received',this.value)">
+<br><small>${isoToDMY(r.received)}</small>
 </td>
 
 <td>
 <input type="date" value="${r.deadline}"
-onchange="rows[${i}].deadline=this.value;save()"><br>
-<small>${fmtDate(r.deadline)}</small>
+onchange="updateRow('${r.id}','deadline',this.value)">
+<br><small>${isoToDMY(r.deadline)}</small>
 </td>
 
 <td>
-<select onchange="rows[${i}].status=this.value;save()">
+<select onchange="updateRow('${r.id}','status',this.value)">
 <option ${r.status==="Not Started"?"selected":""}>Not Started</option>
 <option ${r.status==="Working"?"selected":""}>Working</option>
 <option ${r.status==="Submitted"?"selected":""}>Submitted</option>
 </select>
 </td>
 
-<td><input type="number" ${locked?"disabled class=locked":""}
-onblur="rows[${i}].value=this.value;save()" value="${r.value}"></td>
+<td>
+<input type="number" ${locked?"disabled class=locked":""}
+value="${r.value}"
+onblur="updateRow('${r.id}','value',this.value)">
+</td>
 
 <td>
 ${r.type==="Main"
-?`<button class="icon-btn" onclick="addSub(${r.base},'Additional')">+A</button>
-  <button class="icon-btn" onclick="addSub(${r.base},'Revision')">+R</button>
-  <span class="delete" onclick="deleteMain(${r.base})">✖</span>`
-:`<span class="delete" onclick="removeRow(${i})">✖</span>`}
+?`<button class="icon" onclick="addSub(${r.base},'Additional')">+A</button>
+  <button class="icon" onclick="addSub(${r.base},'Revision')">+R</button>
+  <span class="del" onclick="deleteMain(${r.base})">✖</span>`
+:`<span class="del" onclick="deleteRow('${r.id}')">✖</span>`}
 </td>
 </tr>`;
   });
-  updateTotal();
+
+  const total = rows.reduce((s,r)=>{
+    const v=parseFloat(r.value);
+    return isNaN(v)?s:s+v;
+  },0);
+
+  document.getElementById("total").innerText =
+    `Total Value for ${month} : ${currency} ${total.toLocaleString()}`;
 }
 
-/* EXCEL */
+/* ===== EXCEL ===== */
 function downloadExcel(){
   if(!rows.length) return alert("No data");
-  const data=rows.map(r=>({
+  const data = rows.map(r=>({
     ...r,
-    "Enquiry Received":fmtDate(r.received),
-    "Deadline":fmtDate(r.deadline),
-    Currency:currency
+    "Enquiry Received": isoToDMY(r.received),
+    "Deadline": isoToDMY(r.deadline),
+    Currency: currency
   }));
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),currentMonth);
-  XLSX.writeFile(wb,`Enquiry_${currentMonth}_${currency}.xlsx`);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),month);
+  XLSX.writeFile(wb,`Enquiry_${month}_${currency}.xlsx`);
 }
 
-/* START */
+/* ===== START ===== */
 load();
 </script>
 
