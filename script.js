@@ -1,7 +1,7 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbz7Wu9D21kUuURthXcX89sfzMU4TvKmAgXwprEdJa_hHUM8mVk2nLEsXnmXn3WoIbF3/exec";
 const FORM_REF_KEY = "formRef";
 
-let currentMonth = new Date().toISOString().slice(0,7);
+let currentMonth = "2025-01";
 let data = [];
 
 /* AUTO START */
@@ -15,16 +15,33 @@ window.onload = () => {
   initMonth();
 };
 
-/* MONTH SELECT */
+/* MONTH DROPDOWN: JAN 2025 → JAN 2026 */
 function initMonth() {
   const sel = document.getElementById("monthSelect");
   sel.innerHTML = "";
 
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1);
-    const m = d.toISOString().slice(0,7);
-    sel.add(new Option(m, m, m === currentMonth, m === currentMonth));
+  const start = new Date(2025, 0, 1); // Jan 2025
+  const end = new Date(2026, 0, 1);   // Jan 2026
+
+  let d = new Date(start);
+
+  while (d <= end) {
+    const value = d.toISOString().slice(0, 7);
+    const label = d.toLocaleString("en-US", {
+      month: "long",
+      year: "numeric"
+    });
+
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+
+    if (value === currentMonth) opt.selected = true;
+
+    sel.appendChild(opt);
+    d.setMonth(d.getMonth() + 1);
   }
+
   loadData();
 }
 
@@ -33,12 +50,17 @@ function changeMonth() {
   loadData();
 }
 
-/* LOAD FROM GOOGLE SHEET */
+/* LOAD DATA */
 function loadData() {
   fetch(`${API_URL}?month=${currentMonth}`)
     .then(res => res.json())
     .then(rows => {
-      data = rows;
+      data = rows || [];
+      render();
+    })
+    .catch(err => {
+      console.error("API Error:", err);
+      data = [];
       render();
     });
 }
@@ -49,7 +71,7 @@ function addRow() {
   data.push({
     "Month": currentMonth,
     "Sl.No": sl,
-    "Quote Ref": `${currentMonth.replace("-","")}-${sl}`,
+    "Quote Ref": `${currentMonth.replace("-", "")}-${sl}`,
     "Project Name": "",
     "Project Manager": "",
     "Candidate": "",
@@ -61,7 +83,7 @@ function addRow() {
   save();
 }
 
-/* SAVE TO GOOGLE SHEET */
+/* SAVE DATA */
 function save() {
   fetch(API_URL, {
     method: "POST",
@@ -100,26 +122,10 @@ function render() {
 <td><input type="date" value="${r["Deadline"]}" onchange="upd(${i},'Deadline',this.value)"></td>
 <td class="reminder">${reminder}</td>
 <td>
-<select onchange="upd(${i},'Status',this.value)">
-<option ${r.Status=="Not Started"?"selected":""}>Not Started</option>
-<option ${r.Status=="Working"?"selected":""}>Working</option>
-<option ${r.Status=="Submitted"?"selected":""}>Submitted</option>
-</select>
+  <select onchange="upd(${i},'Status',this.value)">
+    <option ${r.Status=="Not Started"?"selected":""}>Not Started</option>
+    <option ${r.Status=="Working"?"selected":""}>Working</option>
+    <option ${r.Status=="Submitted"?"selected":""}>Submitted</option>
+  </select>
 </td>
-<td><input type="number" value="${r.Value}" oninput="upd(${i},'Value',this.value)"></td>
-</tr>`;
-    });
-}
-
-function upd(i, key, value) {
-  data[i][key] = value;
-  save();
-}
-
-/* EXCEL DOWNLOAD */
-function downloadExcel() {
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, currentMonth);
-  XLSX.writeFile(wb, `Enquiry_${currentMonth}.xlsx`);
-}
+<td><input type="number" value="${r.Value}" oninput="upd(${i},'Value'
