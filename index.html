@@ -4,71 +4,149 @@
   <meta charset="UTF-8">
   <title>Enquiry Log</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 10px;
+    }
+
+    h2 {
+      margin-bottom: 6px;
+    }
+
+    label {
+      font-weight: bold;
+    }
+
+    select, button, input {
+      padding: 6px;
+      margin: 5px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    button {
+      background: #0b2c5d;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: center;
+    }
+
+    th {
+      background: #e9eef5;
+    }
+  </style>
 </head>
 <body>
 
-<h2>Enquiry Log (Test)</h2>
+<h2>Enquiry Log</h2>
 
-<select id="month"></select>
-<button onclick="add()">Add Enquiry</button>
-<button onclick="download()">Download Excel</button>
+<label>Select Month</label>
+<select id="monthSelect"></select>
 
-<table border="1" id="table">
-  <tr>
-    <th>Sl.No</th>
-    <th>Project</th>
-  </tr>
+<button onclick="addRow()">➕ Add Enquiry</button>
+<button onclick="downloadExcel()">⬇️ Download Excel</button>
+
+<table>
+  <thead>
+    <tr>
+      <th>Sl.No</th>
+      <th>Project Name</th>
+    </tr>
+  </thead>
+  <tbody id="tableBody"></tbody>
 </table>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 <script>
-const KEY = "enquiry_test";
-let data = JSON.parse(localStorage.getItem(KEY)) || {};
-let current = "2025-01";
+/* ================= STORAGE ================= */
+const STORAGE_KEY = "ENQUIRY_LOG_2026_10YRS";
 
-const monthSel = document.getElementById("month");
-const table = document.getElementById("table");
+/* ================= STATE ================= */
+let store = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+let currentMonth = "";
 
-function initMonths(){
-  let d = new Date(2025,0,1);
-  const end = new Date(2026,0,1);
-  while(d<=end){
-    const v = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-    monthSel.add(new Option(v,v));
-    d.setMonth(d.getMonth()+1);
+/* ================= ELEMENTS ================= */
+const monthSelect = document.getElementById("monthSelect");
+const tableBody = document.getElementById("tableBody");
+
+/* ================= INIT MONTHS ================= */
+function initMonths() {
+  monthSelect.innerHTML = "";
+
+  const startYear = 2026;
+  const yearsToShow = 10; // next 10 years
+  const start = new Date(startYear, 0, 1); // Jan 2026
+  const end = new Date(startYear + yearsToShow - 1, 11, 1); // Dec 2035
+
+  let d = new Date(start);
+
+  while (d <= end) {
+    const value =
+      d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+
+    const label = d.toLocaleString("en-US", {
+      month: "long",
+      year: "numeric"
+    });
+
+    monthSelect.add(new Option(label, value));
+    d.setMonth(d.getMonth() + 1);
   }
-  monthSel.value = current;
-  load();
+
+  currentMonth = monthSelect.options[0].value;
+  monthSelect.value = currentMonth;
+  loadMonth();
 }
 
-monthSel.onchange = ()=>{ current = monthSel.value; load(); };
+/* ================= MONTH CHANGE ================= */
+monthSelect.onchange = () => {
+  currentMonth = monthSelect.value;
+  loadMonth();
+};
 
-function load(){
-  table.innerHTML = `
-    <tr><th>Sl.No</th><th>Project</th></tr>
-  `;
-  (data[current]||[]).forEach((r,i)=>{
-    table.innerHTML += `<tr><td>${i+1}</td><td>${r}</td></tr>`;
+/* ================= LOAD MONTH ================= */
+function loadMonth() {
+  if (!store[currentMonth]) {
+    store[currentMonth] = [];
+  }
+  render();
+}
+
+/* ================= ADD ROW ================= */
+function addRow() {
+  store[currentMonth].push({
+    project: ""
   });
+  save();
 }
 
-function add(){
-  data[current] = data[current] || [];
-  data[current].push("Test Project");
-  localStorage.setItem(KEY, JSON.stringify(data));
-  load();
+/* ================= SAVE ================= */
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  render();
 }
 
-function download(){
-  const rows = (data[current]||[]).map((p,i)=>({SlNo:i+1,Project:p}));
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, current);
-  XLSX.writeFile(wb, `Test_${current}.xlsx`);
-}
+/* ================= RENDER ================= */
+function render() {
+  tableBody.innerHTML = "";
 
-initMonths();
-</script>
-
-</body>
-</html>
+  store[currentMonth].forEach((
