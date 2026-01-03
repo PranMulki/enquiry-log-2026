@@ -11,7 +11,6 @@ body {
   background:#f4f6f8;
   padding:10px;
 }
-
 h2 { margin-bottom:5px }
 .header-ref { font-size:12px; font-weight:bold; margin-bottom:10px }
 
@@ -58,11 +57,6 @@ input, select {
   font-size:12px;
 }
 
-input:focus, select:focus {
-  outline:none;
-  border-color:#4a86e8;
-}
-
 .sub { background:#fafafa }
 .locked { background:#f0f0f0 }
 
@@ -87,11 +81,6 @@ input:focus, select:focus {
   font-size:11px;
   padding:2px 4px;
 }
-
-.delete:hover {
-  background:#fdecea;
-  border-radius:3px;
-}
 </style>
 </head>
 
@@ -107,8 +96,8 @@ input:focus, select:focus {
     <option value="">All Managers</option>
   </select>
 
-  <button onclick="addMain()">➕ Add Main Quote</button>
-  <button onclick="downloadExcel()">⬇️ Download Excel</button>
+  <button type="button" onclick="addMain()">➕ Add Main Quote</button>
+  <button type="button" onclick="downloadExcel()">⬇️ Download Excel</button>
 </div>
 
 <table>
@@ -134,8 +123,191 @@ input:focus, select:focus {
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
+/* ================= CONFIG ================= */
 const QUOTE_START = 8669;
 
 const managers = [
   "Mr. Vishal","Mr. Mukesh","Mr. Irshad",
-  "Mr.
+  "Mr. Prem","Ms. Tania","Mr. Robbin"
+];
+
+const candidates = ["Praneeth","Chetaka"];
+const months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+
+let currentMonth = months[new Date().getMonth()];
+let rows = [];
+
+/* ================= INIT ================= */
+const monthSelect = document.getElementById("monthSelect");
+const managerFilter = document.getElementById("managerFilter");
+
+months.forEach(m => monthSelect.add(new Option(m, m)));
+monthSelect.value = currentMonth;
+
+monthSelect.onchange = () => {
+  currentMonth = monthSelect.value;
+  load();
+};
+
+managers.forEach(m => managerFilter.add(new Option(m, m)));
+managerFilter.onchange = render;
+
+/* ================= STORAGE ================= */
+function storageKey() {
+  return "ENQUIRY_" + currentMonth;
+}
+
+function load() {
+  rows = JSON.parse(localStorage.getItem(storageKey())) || [];
+  render();
+}
+
+function save() {
+  localStorage.setItem(storageKey(), JSON.stringify(rows));
+  render();
+}
+
+/* ================= LOGIC ================= */
+function nextMainQuote() {
+  const all = Object.keys(localStorage)
+    .filter(k => k.startsWith("ENQUIRY_"))
+    .flatMap(k => JSON.parse(localStorage.getItem(k)) || [])
+    .filter(r => r.type === "Main")
+    .map(r => r.base);
+
+  return all.length ? Math.max(...all) + 1 : QUOTE_START;
+}
+
+function addMain() {
+  const base = nextMainQuote();
+  const sl = rows.filter(r => r.type === "Main").length + 1;
+
+  rows.push({
+    month: currentMonth,
+    sl,
+    base,
+    quote: String(base),
+    type: "Main",
+    project:"",
+    manager:"",
+    candidate:"",
+    received:"",
+    deadline:"",
+    status:"Not Started",
+    value:""
+  });
+  save();
+}
+
+function addSub(base, type) {
+  const parent = rows.find(r => r.base === base && r.type === "Main");
+  if (!parent) return;
+
+  const count = rows.filter(r => r.base === base && r.type === type).length + 1;
+
+  rows.push({
+    month:"",
+    sl:"",
+    base,
+    quote: `${base}-${type==="Additional"?"A":"R"}${count}`,
+    type,
+    project:"",
+    manager: parent.manager,
+    candidate: parent.candidate,
+    received:"",
+    deadline:"",
+    status:"Not Started",
+    value:""
+  });
+  save();
+}
+
+function removeRow(i) {
+  rows.splice(i, 1);
+  save();
+}
+
+/* ================= RENDER ================= */
+function render() {
+  const body = document.getElementById("body");
+  body.innerHTML = "";
+
+  rows.forEach((r,i) => {
+    const locked = r.status === "Submitted";
+
+    body.innerHTML += `
+<tr class="${r.type !== "Main" ? "sub" : ""}">
+<td>${r.month}</td>
+<td>${r.sl}</td>
+<td>${r.quote}</td>
+<td>${r.type}</td>
+
+<td><input ${locked?"disabled class=locked":""}
+value="${r.project}"
+oninput="rows[${i}].project=this.value;save()"></td>
+
+<td>
+<select ${locked?"disabled":""}
+onchange="rows[${i}].manager=this.value;save()">
+<option></option>
+${managers.map(m=>`<option ${m===r.manager?"selected":""}>${m}</option>`).join("")}
+</select>
+</td>
+
+<td>
+<select ${locked?"disabled":""}
+onchange="rows[${i}].candidate=this.value;save()">
+<option></option>
+${candidates.map(c=>`<option ${c===r.candidate?"selected":""}>${c}</option>`).join("")}
+</select>
+</td>
+
+<td><input ${locked?"disabled":""} type="date"
+value="${r.received}"
+onchange="rows[${i}].received=this.value;save()"></td>
+
+<td><input ${locked?"disabled":""} type="date"
+value="${r.deadline}"
+onchange="rows[${i}].deadline=this.value;save()"></td>
+
+<td>
+<select onchange="rows[${i}].status=this.value;save()">
+<option ${r.status==="Not Started"?"selected":""}>Not Started</option>
+<option ${r.status==="Working"?"selected":""}>Working</option>
+<option ${r.status==="Submitted"?"selected":""}>Submitted</option>
+</select>
+</td>
+
+<td><input ${locked?"disabled class=locked":""} type="number"
+value="${r.value}"
+oninput="rows[${i}].value=this.value;save()"></td>
+
+<td>
+${r.type==="Main"
+? `<button class="icon-btn" type="button" onclick="addSub(${r.base},'Additional')">➕A</button>
+   <button class="icon-btn" type="button" onclick="addSub(${r.base},'Revision')">➕R</button>`
+: `<span class="delete" onclick="removeRow(${i})">✖</span>`}
+</td>
+</tr>`;
+  });
+}
+
+/* ================= EXCEL ================= */
+function downloadExcel() {
+  if (!rows.length) {
+    alert("No data to export");
+    return;
+  }
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, currentMonth);
+  XLSX.writeFile(wb, `Enquiry_${currentMonth}.xlsx`);
+}
+
+/* ================= START ================= */
+load();
+</script>
+
+</body>
+</html>
