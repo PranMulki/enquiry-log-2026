@@ -8,11 +8,35 @@ header {
   background: #0b2c5d;
   color: white;
   padding: 12px;
-  text-align: center;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.form-ref {
+  margin-top: 4px;
+}
+
+.form-ref input {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  outline: none;
 }
 
 .container {
   padding: 10px;
+}
+
+.controls {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
 }
 
 button {
