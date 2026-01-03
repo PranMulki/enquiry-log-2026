@@ -8,28 +8,56 @@
 </head>
 <body>
 
+<!-- LOGIN -->
 <div id="loginBox" class="login">
   <h3>Enquiry Log Login</h3>
   <input type="password" id="password" placeholder="Password">
   <button onclick="login()">Login</button>
 </div>
 
+<!-- APP -->
 <div id="app" class="hidden">
-  <header>Enquiry Log 2026</header>
+
+  <header>
+    <div class="title">Enquiry Log 2026</div>
+    <div class="form-ref">
+      <input type="text" id="formRef" value="IRS-FORM-13-01">
+    </div>
+  </header>
 
   <div class="container">
+
+    <div class="controls">
+      <select id="monthSelect" onchange="changeMonth()"></select>
+
+      <select id="filterStatus" onchange="render()">
+        <option value="">All Status</option>
+        <option value="Submitted">Submitted</option>
+      </select>
+
+      <select id="filterManager" onchange="render()">
+        <option value="">All Managers</option>
+        <option>Mr. Vishal</option>
+        <option>Mr. Mukesh</option>
+        <option>Mr. Irshad</option>
+        <option>Mr. Prem</option>
+        <option>Ms. Tania</option>
+        <option>Mr. Robbin</option>
+      </select>
+    </div>
+
     <button onclick="addRow()">➕ Add Enquiry</button>
     <button onclick="downloadExcel()">⬇️ Download Excel</button>
 
     <table>
       <thead>
         <tr>
-          <th>Sl</th>
-          <th>Quote</th>
-          <th>Project</th>
-          <th>Manager</th>
+          <th>Sl.No</th>
+          <th>Quote Ref</th>
+          <th>Project Name</th>
+          <th>Project Manager</th>
           <th>Candidate</th>
-          <th>Received</th>
+          <th>Enquiry Received</th>
           <th>Deadline</th>
           <th>Reminder</th>
           <th>Status</th>
@@ -38,6 +66,7 @@
       </thead>
       <tbody id="tableBody"></tbody>
     </table>
+
   </div>
 </div>
 
