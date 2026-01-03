@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Enquiry Log</title>
+<title>Enquiry Log – January 2026</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -16,8 +16,6 @@ th { background:#e9eef5 }
 input,select { width:100%; box-sizing:border-box; padding:4px }
 .locked { background:#eee }
 .sub { background:#f9f9f9 }
-.reminder { color:red; font-weight:bold; cursor:pointer }
-.filters { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:5px }
 </style>
 </head>
 
@@ -32,12 +30,14 @@ input,select { width:100%; box-sizing:border-box; padding:4px }
 <table>
 <thead>
 <tr>
-<th>Sl</th>
+<th>Month</th>
+<th>Sl.No</th>
 <th>Quote No</th>
 <th>Type</th>
 <th>Project</th>
-<th>Manager</th>
+<th>Project Manager</th>
 <th>Candidate</th>
+<th>Enquiry Received</th>
 <th>Deadline</th>
 <th>Status</th>
 <th>Value</th>
@@ -50,129 +50,155 @@ input,select { width:100%; box-sizing:border-box; padding:4px }
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
-/* CONFIG */
-const STORAGE="ENQUIRY_JAN_2026";
-const QUOTE_START=8669;
-const managers=["Mr. Vishal","Mr. Mukesh","Mr. Irshad","Mr. Prem","Ms. Tania","Mr. Robbin"];
-const candidates={
-  "Praneeth":"estimation@insides.ae",
-  "Chetaka":"estimation2@insides.ae"
-};
+/* ================= CONFIG ================= */
+const STORAGE = "ENQUIRY_JAN_2026_FINAL";
+const MONTH = "JAN";
+const QUOTE_START = 8669;
 
-let rows=JSON.parse(localStorage.getItem(STORAGE))||[];
+const managers = ["Mr. Vishal","Mr. Mukesh","Mr. Irshad","Mr. Prem","Ms. Tania","Mr. Robbin"];
+const candidates = ["Praneeth","Chetaka"];
 
-/* NEXT MAIN QUOTE */
-function nextMain(){
-  const mains=rows.filter(r=>r.type==="Main").map(r=>+r.base);
-  return mains.length?Math.max(...mains)+1:QUOTE_START;
+/* ================= DATA ================= */
+let rows = JSON.parse(localStorage.getItem(STORAGE)) || [];
+
+/* ================= HELPERS ================= */
+function nextMainSerial() {
+  const mains = rows.filter(r => r.type === "Main");
+  return mains.length + 1;
 }
 
-/* ADD MAIN */
-function addMain(){
-  const base=nextMain();
+function nextMainQuote() {
+  const mains = rows.filter(r => r.type === "Main").map(r => r.base);
+  return mains.length ? Math.max(...mains) + 1 : QUOTE_START;
+}
+
+/* ================= ADD MAIN ================= */
+function addMain() {
+  const base = nextMainQuote();
+  const sl = nextMainSerial();
+
   rows.push({
+    month: MONTH,
+    sl,
     base,
-    quote:String(base),
-    type:"Main",
-    project:"",
-    manager:"",
-    candidate:"",
-    deadline:"",
-    status:"Not Started",
-    value:""
+    quote: String(base),
+    type: "Main",
+    project: "",
+    manager: "",
+    candidate: "",
+    received: "",
+    deadline: "",
+    status: "Not Started",
+    value: ""
   });
   save();
 }
 
-/* ADD SUB (A / R) */
-function addSub(base,type){
-  const count=rows.filter(r=>r.base===base && r.type===type).length+1;
+/* ================= ADD CHILD ================= */
+function addSub(base, type) {
+  const count = rows.filter(r => r.base === base && r.type === type).length + 1;
   rows.push({
+    month: "",
+    sl: "",
     base,
-    quote:`${base}-${type[0]}${count}`,
+    quote: `${base}-${type === "Additional" ? "A" : "R"}${count}`,
     type,
-    project:"",
-    manager:"",
-    candidate:"",
-    deadline:"",
-    status:"Not Started",
-    value:""
+    project: "",
+    manager: "",
+    candidate: "",
+    received: "",
+    deadline: "",
+    status: "Not Started",
+    value: ""
   });
   save();
 }
 
-/* SAVE */
-function save(){
-  localStorage.setItem(STORAGE,JSON.stringify(rows));
+/* ================= SAVE ================= */
+function save() {
+  localStorage.setItem(STORAGE, JSON.stringify(rows));
   render();
 }
 
-/* RENDER */
-function render(){
-  const b=document.getElementById("body");
-  b.innerHTML="";
-  rows.forEach((r,i)=>{
-    const locked=r.status==="Submitted";
-    b.innerHTML+=`
-<tr class="${r.type!=="Main"?"sub":""}">
-<td>${i+1}</td>
+/* ================= UPDATE ================= */
+function upd(i, k, v) {
+  rows[i][k] = v;
+  save();
+}
+
+/* ================= RENDER ================= */
+function render() {
+  const body = document.getElementById("body");
+  body.innerHTML = "";
+
+  rows.forEach((r, i) => {
+    const locked = r.status === "Submitted";
+
+    body.innerHTML += `
+<tr class="${r.type !== "Main" ? "sub" : ""}">
+<td>${r.month}</td>
+<td>${r.sl}</td>
 <td>${r.quote}</td>
 <td>${r.type}</td>
 <td><input ${locked?"disabled class=locked":""} value="${r.project}" oninput="upd(${i},'project',this.value)"></td>
 <td>
 <select ${locked?"disabled":""} onchange="upd(${i},'manager',this.value)">
-<option></option>${opt(managers,r.manager)}
+<option></option>
+${managers.map(m=>`<option ${m===r.manager?"selected":""}>${m}</option>`).join("")}
 </select>
 </td>
 <td>
 <select ${locked?"disabled":""} onchange="upd(${i},'candidate',this.value)">
-<option></option>${opt(Object.keys(candidates),r.candidate)}
+<option></option>
+${candidates.map(c=>`<option ${c===r.candidate?"selected":""}>${c}</option>`).join("")}
 </select>
 </td>
+<td><input ${locked?"disabled":""} type="date" value="${r.received}" onchange="upd(${i},'received',this.value)"></td>
 <td><input ${locked?"disabled":""} type="date" value="${r.deadline}" onchange="upd(${i},'deadline',this.value)"></td>
 <td>
 <select onchange="upd(${i},'status',this.value)">
-<option ${r.status=="Not Started"?"selected":""}>Not Started</option>
-<option ${r.status=="Working"?"selected":""}>Working</option>
-<option ${r.status=="Submitted"?"selected":""}>Submitted</option>
+<option ${r.status==="Not Started"?"selected":""}>Not Started</option>
+<option ${r.status==="Working"?"selected":""}>Working</option>
+<option ${r.status==="Submitted"?"selected":""}>Submitted</option>
 </select>
 </td>
 <td><input ${locked?"disabled class=locked":""} type="number" value="${r.value}" oninput="upd(${i},'value',this.value)"></td>
 <td>
-${r.type==="Main"?
-`<button onclick="addSub(${r.base},'Additional')">A+</button>
- <button onclick="addSub(${r.base},'Revision')">R+</button>`:""}
+${r.type==="Main" ? `
+<button onclick="addSub(${r.base},'Additional')">A+</button>
+<button onclick="addSub(${r.base},'Revision')">R+</button>` : ""}
 </td>
 </tr>`;
   });
 }
 
-/* UPDATE */
-function upd(i,k,v){ rows[i][k]=v; save(); }
+/* ================= EXCEL ================= */
+function downloadExcel() {
+  if (!rows.length) {
+    alert("No data");
+    return;
+  }
 
-/* OPTIONS */
-function opt(arr,val){
-return arr.map(o=>`<option ${o===val?"selected":""}>${o}</option>`).join("");
-}
-
-/* EXCEL */
-function downloadExcel(){
-  const ws=XLSX.utils.json_to_sheet(rows.map((r,i)=>({
-    "Sl.No":i+1,
-    "Quote No":r.quote,
-    "Type":r.type,
-    "Project":r.project,
-    "Manager":r.manager,
-    "Candidate":r.candidate,
-    "Deadline":r.deadline,
-    "Status":r.status,
-    "Value":r.value
+  const ws = XLSX.utils.json_to_sheet(rows.map(r => ({
+    Month: r.month,
+    "Sl.No": r.sl,
+    "Quote No": r.quote,
+    Type: r.type,
+    Project: r.project,
+    Manager: r.manager,
+    Candidate: r.candidate,
+    "Enquiry Received": r.received,
+    Deadline: r.deadline,
+    Status: r.status,
+    Value: r.value
   })));
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,"January 2026");
-  XLSX.writeFile(wb,"Enquiry_Jan_2026.xlsx");
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "January 2026");
+  XLSX.writeFile(wb, "Enquiry_January_2026.xlsx");
 }
 
+/* ================= START ================= */
 render();
 </script>
 
