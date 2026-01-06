@@ -1,215 +1,241 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Enquiry Log</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<style>
-body{font-family:Calibri,Arial,sans-serif;background:#f4f6f8;padding:10px}
-h2{margin:0 0 5px}
-.header-ref{font-size:12px;font-weight:bold;margin-bottom:8px}
-.topbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-
-button{background:#0b2c5d;color:#fff;border:none;padding:6px 10px;font-size:12px;cursor:pointer}
-input,select,textarea{font-size:12px;border:1px solid #bfbfbf;box-sizing:border-box}
-textarea{resize:none;min-height:22px;padding:2px 4px;width:100%}
-
-table{width:100%;border-collapse:collapse;background:#fff;font-size:12px}
-th,td{border:1px solid #d0d0d0;padding:4px 6px;text-align:center}
-
-thead th{position:sticky;top:0;background:#e9eef5;z-index:10}
-.main{background:#fff}
-.sub{background:#fafafa}
-.indent{text-align:left;padding-left:18px}
-.locked{background:#f0f0f0}
-
-.icon{background:none;border:none;color:#0b2c5d;font-weight:bold;cursor:pointer}
-.del{color:#c0392b;cursor:pointer;margin-left:4px}
-
-/* column resize */
-th{position:relative}
-.resizer{position:absolute;right:0;top:0;width:5px;height:100%;cursor:col-resize}
-
-/* freeze first 4 columns */
-th:nth-child(1),td:nth-child(1){position:sticky;left:0;background:#fff;z-index:8}
-th:nth-child(2),td:nth-child(2){position:sticky;left:70px;background:#fff;z-index:8}
-th:nth-child(3),td:nth-child(3){position:sticky;left:120px;background:#fff;z-index:8}
-th:nth-child(4),td:nth-child(4){position:sticky;left:210px;background:#fff;z-index:8}
-</style>
+  <base target="_top">
+  <style>
+    body{
+      font-family:Calibri,Arial,sans-serif;
+      font-size:13px;
+      background:#f4f6f8;
+      padding:10px
+    }
+    h2{margin:0}
+    .top{
+      display:flex;
+      gap:6px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-bottom:8px
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      background:#fff;
+      margin-top:8px
+    }
+    th,td{
+      border:1px solid #ccc;
+      padding:5px;
+      text-align:center
+    }
+    th{background:#e9eef5}
+    input,select,textarea{
+      font-size:12px;
+      width:100%;
+      box-sizing:border-box
+    }
+    textarea{
+      resize:none;
+      min-height:22px
+    }
+    button{
+      background:#0b2c5d;
+      color:#fff;
+      border:none;
+      padding:5px 10px;
+      cursor:pointer
+    }
+    .hidden{display:none}
+    .del{color:#c0392b;cursor:pointer;font-weight:bold}
+    .total{
+      margin-top:8px;
+      text-align:right;
+      font-weight:bold
+    }
+  </style>
 </head>
 
 <body>
 
 <h2>Enquiry Log</h2>
-<div class="header-ref">IRS-FORM-13-01</div>
+<div>IRS-FORM-13-01</div>
 
-<div class="topbar">
-  <select id="monthSelect"></select>
-  <select id="currencySelect"><option>AED</option><option>USD</option><option>EUR</option></select>
-  <select id="managerFilter"><option value="">All Managers</option></select>
-  <input id="searchBox" placeholder="Search anything…">
+<div class="top">
+  <select id="month"></select>
+  <select id="managerFilter">
+    <option value="">All Managers</option>
+  </select>
   <button onclick="addMain()">➕ Add Main Quote</button>
-  <button onclick="downloadExcel()">⬇️ Download Excel</button>
+  <button id="exportBtn" onclick="exportExcel()">⬇️ Download Excel</button>
 </div>
 
 <table>
-<colgroup>
-  <col style="width:70px">
-  <col style="width:50px">
-  <col style="width:90px">
-  <col style="width:90px">
-  <col style="width:320px">
-  <col style="width:130px">
-  <col style="width:120px">
-  <col style="width:110px">
-  <col style="width:110px">
-  <col style="width:110px">
-  <col style="width:90px">
-  <col style="width:90px">
-</colgroup>
 <thead>
 <tr>
-<th>Month<div class="resizer"></div></th>
-<th>Sl.No<div class="resizer"></div></th>
-<th>Type<div class="resizer"></div></th>
-<th>Quote<div class="resizer"></div></th>
-<th>Project<div class="resizer"></div></th>
-<th>Manager<div class="resizer"></div></th>
-<th>Candidate<div class="resizer"></div></th>
-<th>Enquiry<div class="resizer"></div></th>
-<th>Deadline<div class="resizer"></div></th>
-<th>Status<div class="resizer"></div></th>
-<th>Value<div class="resizer"></div></th>
-<th>Action</th>
+  <th>Month</th>
+  <th>Sl.No</th>
+  <th>Type</th>
+  <th>Quote</th>
+  <th>Project</th>
+  <th>Manager</th>
+  <th>Candidate</th>
+  <th>Enquiry</th>
+  <th>Deadline</th>
+  <th>Status</th>
+  <th id="valHead">Value</th>
+  <th>Action</th>
 </tr>
 </thead>
 <tbody id="tbody"></tbody>
 </table>
 
-<div id="total" style="margin-top:8px;text-align:right;font-weight:bold"></div>
-
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<div id="totalBox" class="total"></div>
 
 <script>
-const START_QUOTE=8669;
-const managers=["Mr. Vishal","Mr. Mukesh","Mr. Irshad","Mr. Prem","Ms. Tania","Mr. Robbin"];
-const candidates=["Praneeth","Chetaka"];
+/* ---------- SETUP ---------- */
 const months=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+const managers=["Mr. Vishal","Mr. Mukesh","Mr. Irshad","Mr. Prem","Ms. Tania","Mr. Robbin"];
 
-let month=months[new Date().getMonth()];
-let rows=[],currency="AED";
-
-const tbody=document.getElementById("tbody");
-const monthSelect=document.getElementById("monthSelect");
+const monthSel=document.getElementById("month");
 const managerFilter=document.getElementById("managerFilter");
-const searchBox=document.getElementById("searchBox");
-const currencySelect=document.getElementById("currencySelect");
+const tbody=document.getElementById("tbody");
+const totalBox=document.getElementById("totalBox");
+const valHead=document.getElementById("valHead");
+const exportBtn=document.getElementById("exportBtn");
 
-months.forEach(m=>monthSelect.add(new Option(m,m)));
-monthSelect.value=month;
+months.forEach(m=>monthSel.add(new Option(m,m)));
+monthSel.value=months[new Date().getMonth()];
 managers.forEach(m=>managerFilter.add(new Option(m,m)));
 
-monthSelect.onchange=()=>{month=monthSelect.value;load()};
+let ROLE="EDITOR";
+let ALL_ROWS=[];
+
+monthSel.onchange=load;
 managerFilter.onchange=render;
-searchBox.oninput=render;
-currencySelect.onchange=()=>{currency=currencySelect.value;saveCurrency();render()};
 
-const key=()=>`ENQ_${month}`;
-const ckey=()=>`ENQ_CUR_${month}`;
-
+/* ---------- LOAD DATA ---------- */
 function load(){
-  rows=JSON.parse(localStorage.getItem(key()))||[];
-  currency=localStorage.getItem(ckey())||"AED";
-  currencySelect.value=currency;
-  render();
-}
-function save(){localStorage.setItem(key(),JSON.stringify(rows));render()}
-function saveCurrency(){localStorage.setItem(ckey(),currency)}
+  google.script.run.withSuccessHandler(res=>{
+    ROLE=res.role;
+    ALL_ROWS=res.rows || [];
 
-const uid=()=>Math.random().toString(36).slice(2,9);
-const dmy=d=>d?`${d.split("-")[2]}/${d.split("-")[1]}/${d.split("-")[0].slice(2)}`:"";
+    if(ROLE==="EDITOR"){
+      valHead.classList.add("hidden");
+      exportBtn.classList.add("hidden");
+      totalBox.classList.add("hidden");
+    }
 
-function nextQuote(){
-  let all=[];
-  Object.keys(localStorage).forEach(k=>{
-    if(k.startsWith("ENQ_")&&!k.includes("CUR"))
-      (JSON.parse(localStorage.getItem(k))||[])
-        .filter(r=>r.type==="Main").forEach(r=>all.push(r.base));
-  });
-  return all.length?Math.max(...all)+1:START_QUOTE;
+    render();
+  }).getData(monthSel.value);
 }
 
-function update(id,f,v){const r=rows.find(x=>x.id===id);if(r){r[f]=v;save()}}
-
-function addMain(){
-  const base=nextQuote();
-  rows.push({id:uid(),month,sl:rows.filter(r=>r.type==="Main").length+1,base,quote:String(base),type:"Main",
-    project:"",manager:"",candidate:"",received:"",deadline:"",status:"Not Started",value:""});
-  save();
-}
-function addSub(base,type){
-  const p=rows.find(r=>r.base===base&&r.type==="Main");
-  const n=rows.filter(r=>r.base===base&&r.type===type).length+1;
-  rows.push({id:uid(),month:"",sl:"",base,quote:`${base}-${type==="Additional"?"A":"R"}${n}`,
-    type,project:"",manager:p.manager,candidate:p.candidate,received:"",deadline:"",status:"Not Started",value:""});
-  save();
-}
-function delMain(base){if(confirm("Delete main quote and all children?")){rows=rows.filter(r=>r.base!==base);save()}}
-function delRow(id){rows=rows.filter(r=>r.id!==id);save()}
-
-function autoGrow(t){t.style.height="22px";t.style.height=t.scrollHeight+"px"}
-
+/* ---------- RENDER TABLE ---------- */
 function render(){
   tbody.innerHTML="";
-  const q=searchBox.value.toLowerCase();
-  rows.filter(r=>{
-    if(managerFilter.value){
-      const p=r.type==="Main"?r:rows.find(x=>x.base===r.base&&x.type==="Main");
-      if(!p||p.manager!==managerFilter.value)return false;
-    }
-    return Object.values(r).join(" ").toLowerCase().includes(q);
-  }).forEach(r=>{
+  let rows=ALL_ROWS;
+
+  const selectedManager=managerFilter.value;
+  if(selectedManager){
+    rows=rows.filter(r=>r.ProjectManager===selectedManager);
+  }
+
+  rows.forEach(r=>{
     tbody.innerHTML+=`
-<tr class="${r.type==="Main"?"main":"sub"}">
-<td>${r.month}</td>
-<td>${r.sl}</td>
-<td class="${r.type!=="Main"?"indent":""}">${r.type!=="Main"?"↳ ":""}${r.type}</td>
-<td>${r.quote}</td>
-<td><textarea oninput="autoGrow(this)" onblur="update('${r.id}','project',this.value)">${r.project}</textarea></td>
-<td><select onchange="update('${r.id}','manager',this.value)"><option></option>${managers.map(m=>`<option ${m===r.manager?"selected":""}>${m}</option>`).join("")}</select></td>
-<td><select onchange="update('${r.id}','candidate',this.value)"><option></option>${candidates.map(c=>`<option ${c===r.candidate?"selected":""}>${c}</option>`).join("")}</select></td>
-<td><input type="date" value="${r.received}" onchange="update('${r.id}','received',this.value)"><br><small>${dmy(r.received)}</small></td>
-<td><input type="date" value="${r.deadline}" onchange="update('${r.id}','deadline',this.value)"><br><small>${dmy(r.deadline)}</small></td>
-<td><select onchange="update('${r.id}','status',this.value)"><option ${r.status==="Not Started"?"selected":""}>Not Started</option><option ${r.status==="Working"?"selected":""}>Working</option><option ${r.status==="Submitted"?"selected":""}>Submitted</option></select></td>
-<td><input type="number" value="${r.value}" onblur="update('${r.id}','value',this.value)"></td>
-<td>${r.type==="Main"
-?`<button class="icon" onclick="addSub(${r.base},'Additional')">+A</button>
-  <button class="icon" onclick="addSub(${r.base},'Revision')">+R</button>
-  <span class="del" onclick="delMain(${r.base})">✖</span>`
-:`<span class="del" onclick="delRow('${r.id}')">✖</span>`}
-</td></tr>`;
+<tr>
+<td>${r.Month||""}</td>
+<td>${r.SlNo||""}</td>
+<td>${r.Type}</td>
+<td>${r.QuoteNo}</td>
+<td>
+  <textarea onblur="upd('${r.ID}','Project',this.value)">${r.Project||""}</textarea>
+</td>
+<td>
+  <select onchange="upd('${r.ID}','ProjectManager',this.value)">
+    <option></option>
+    ${managers.map(m=>`<option ${m===r.ProjectManager?"selected":""}>${m}</option>`).join("")}
+  </select>
+</td>
+<td>
+  <input value="${r.Candidate||""}" onblur="upd('${r.ID}','Candidate',this.value)">
+</td>
+<td>
+  <input type="date" value="${r.EnquiryReceived||""}"
+         onchange="upd('${r.ID}','EnquiryReceived',this.value)">
+</td>
+<td>
+  <input type="date" value="${r.Deadline||""}"
+         onchange="upd('${r.ID}','Deadline',this.value)">
+</td>
+<td>
+  <select onchange="upd('${r.ID}','Status',this.value)">
+    <option ${r.Status==="Not Started"?"selected":""}>Not Started</option>
+    <option ${r.Status==="Working"?"selected":""}>Working</option>
+    <option ${r.Status==="Submitted"?"selected":""}>Submitted</option>
+  </select>
+</td>
+<td class="${ROLE==="EDITOR"?"hidden":""}">
+  <input type="number" value="${r.Value||""}"
+         onblur="upd('${r.ID}','Value',this.value)">
+</td>
+<td>
+  ${ROLE==="ADMIN" ? `<span class="del" onclick="delMain('${r.QuoteNo}')">✖</span>` : ""}
+</td>
+</tr>`;
   });
-  document.getElementById("total").innerText=`Total Value for ${month} : ${currency} ${rows.reduce((s,r)=>s+(+r.value||0),0).toLocaleString()}`;
+
+  updateTotal(rows);
 }
 
-/* column resize */
-document.querySelectorAll(".resizer").forEach((r,i)=>{
-  r.onmousedown=e=>{
-    const th=r.parentElement,startX=e.pageX,startW=th.offsetWidth;
-    document.onmousemove=e=>th.style.width=startW+(e.pageX-startX)+"px";
-    document.onmouseup=()=>{document.onmousemove=document.onmouseup=null};
-  };
-});
+/* ---------- TOTAL (FILTER AWARE) ---------- */
+function updateTotal(rows){
+  if(ROLE==="EDITOR") return;
 
-function downloadExcel(){
-  if(!rows.length)return alert("No data");
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.map(r=>({...r,Received:dmy(r.received),Deadline:dmy(r.deadline),Currency:currency}))),month);
-  XLSX.writeFile(wb,`Enquiry_${month}_${currency}.xlsx`);
+  const total=rows.reduce(
+    (sum,r)=>sum+(Number(r.Value)||0),
+    0
+  );
+
+  totalBox.innerText=
+    `Total Value for ${monthSel.value}: AED ${total.toLocaleString()}`;
 }
 
+/* ---------- ACTIONS ---------- */
+function upd(id,field,val){
+  google.script.run.updateCell(id,field,val);
+}
+
+function addMain(){
+  google.script.run.addRow({
+    Month:monthSel.value,
+    Type:"Main",
+    QuoteNo:"",
+    Project:"",
+    ProjectManager:"",
+    Candidate:"",
+    EnquiryReceived:"",
+    Deadline:"",
+    Status:"Not Started",
+    Value:""
+  });
+  setTimeout(load,500);
+}
+
+function delMain(q){
+  if(confirm("Delete this main quote and all related entries?")){
+    google.script.run.deleteMainQuote(q);
+    setTimeout(load,500);
+  }
+}
+
+function exportExcel(){
+  google.script.run.withSuccessHandler(url=>{
+    window.open(url);
+  }).exportExcel(monthSel.value);
+}
+
+/* ---------- INIT ---------- */
 load();
 </script>
+
 </body>
 </html>
